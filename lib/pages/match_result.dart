@@ -1,14 +1,13 @@
 import 'package:efootballranking/controller/match_result_controller.dart';
+import 'package:efootballranking/pages/playerpage.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:efootballranking/pages/playerpage.dart';
 
 class PlayerMatchResultPage extends StatelessWidget {
   const PlayerMatchResultPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Triggering the fetchPlayers() when the widget is built for the first time
     Future.delayed(Duration.zero, () {
       context.read<PlayerMatchResultProvider>().fetchPlayers();
     });
@@ -19,7 +18,7 @@ class PlayerMatchResultPage extends StatelessWidget {
           backgroundColor: Colors.grey.shade900,
           appBar: AppBar(
             title: const Text("Match Result"),
-            backgroundColor: const Color.fromARGB(255, 25, 25, 25),
+            backgroundColor: const Color(0xFF191919),
             foregroundColor: Colors.amber,
           ),
           body:
@@ -31,7 +30,6 @@ class PlayerMatchResultPage extends StatelessWidget {
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       children: [
-                        // Player Dropdown
                         Card(
                           color: Colors.grey.shade900,
                           shape: RoundedRectangleBorder(
@@ -52,23 +50,10 @@ class PlayerMatchResultPage extends StatelessWidget {
                                 ),
                               ),
                               dropdownColor: Colors.grey.shade900,
-                              value:
-                                  provider.selectedPlayer != null
-                                      ? provider.selectedPlayer!['id']
-                                      : null,
+                              value: provider.selectedPlayer?['id'],
                               items:
                                   provider.players.isEmpty
-                                      ? [
-                                        DropdownMenuItem<String>(
-                                          value: null,
-                                          child: Text(
-                                            "No players available",
-                                            style: const TextStyle(
-                                              color: Colors.grey,
-                                            ),
-                                          ),
-                                        ),
-                                      ]
+                                      ? []
                                       : provider.players.map((player) {
                                         return DropdownMenuItem<String>(
                                           value: player['id'],
@@ -81,17 +66,20 @@ class PlayerMatchResultPage extends StatelessWidget {
                                         );
                                       }).toList(),
                               onChanged: (val) {
-                                provider.selectPlayer(
-                                  provider.players.firstWhere(
-                                    (player) => player['id'] == val,
-                                  ),
-                                );
+                                if (val != null) {
+                                  provider.selectPlayer(
+                                    provider.players.firstWhere(
+                                      (player) => player['id'] == val,
+                                    ),
+                                  );
+                                }
                               },
                             ),
                           ),
                         ),
 
-                        // Result Selection (Won, Lost, Draw)
+                        const SizedBox(height: 16),
+
                         Card(
                           color: Colors.grey.shade900,
                           shape: RoundedRectangleBorder(
@@ -108,34 +96,29 @@ class PlayerMatchResultPage extends StatelessWidget {
                                       ),
                                     ),
                                     value: result,
-                                    activeColor: Colors.amber,
                                     groupValue: provider.selectedResult,
-                                    onChanged: (val) {
-                                      provider.selectResult(val!);
-                                    },
+                                    activeColor: Colors.amber,
+                                    onChanged:
+                                        (val) => provider.selectResult(val!),
                                   );
                                 }).toList(),
                           ),
                         ),
 
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 16),
 
-                        // Action Buttons
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
-                            // Add Player Button
                             OutlinedButton.icon(
                               onPressed: () async {
                                 await Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder:
-                                        (context) => const PlayerNameFormPage(),
+                                    builder: (_) => const PlayerNameFormPage(),
                                   ),
                                 );
-                                provider
-                                    .fetchPlayers(); // Re-fetch players after adding a new one
+                                provider.fetchPlayers();
                               },
                               icon: const Icon(
                                 Icons.person_add,
@@ -153,8 +136,6 @@ class PlayerMatchResultPage extends StatelessWidget {
                                 ),
                               ),
                             ),
-
-                            // Submit Match Result Button
                             ElevatedButton.icon(
                               onPressed: () async {
                                 try {
@@ -163,10 +144,7 @@ class PlayerMatchResultPage extends StatelessWidget {
                                     const SnackBar(
                                       content: Text(
                                         "Match result submitted successfully!",
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.amber,
-                                        ),
+                                        style: TextStyle(color: Colors.amber),
                                       ),
                                       backgroundColor: Color.fromARGB(
                                         255,
@@ -183,7 +161,6 @@ class PlayerMatchResultPage extends StatelessWidget {
                                       content: Text(
                                         e.toString(),
                                         style: const TextStyle(
-                                          fontSize: 17,
                                           color: Colors.amber,
                                         ),
                                       ),
@@ -217,8 +194,6 @@ class PlayerMatchResultPage extends StatelessWidget {
                             ),
                           ],
                         ),
-
-                        const SizedBox(height: 10),
                       ],
                     ),
                   ),

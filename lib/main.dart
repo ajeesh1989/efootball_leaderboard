@@ -5,6 +5,7 @@ import 'package:efootballranking/pages/home.dart';
 import 'package:efootballranking/pages/landing_page.dart';
 import 'package:efootballranking/pages/match_result.dart';
 import 'package:efootballranking/pages/playerpage.dart';
+import 'package:efootballranking/pages/report.dart';
 import 'package:efootballranking/pages/settings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -58,6 +59,7 @@ class MyApp extends StatelessWidget {
         '/add_result':
             (context) => PlayerMatchResultPage(), // You'll need to create this
         '/settings': (context) => SettingPage(), // You'll need to create this
+        '/report': (context) => ReportPage(),
       },
     );
   }

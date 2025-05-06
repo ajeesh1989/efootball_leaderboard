@@ -2,12 +2,14 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:efootballranking/controller/player_controller.dart';
 import 'package:efootballranking/pages/entry_list_screen.dart';
 import 'package:efootballranking/pages/home.dart';
+import 'package:efootballranking/pages/physolophy.dart';
 import 'package:efootballranking/pages/player_list_page.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
 
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
@@ -46,15 +48,95 @@ class _LandingPageState extends State<LandingPage>
           children: [
             Icon(Icons.monetization_on, color: Colors.amber, size: 20),
             SizedBox(width: 4),
-            Text('69', style: TextStyle(color: Colors.white, fontSize: 15)),
+            Text(
+              'Infinite',
+              style: TextStyle(color: Colors.white, fontSize: 15),
+            ),
             Spacer(),
 
             IconButton(
-              onPressed: () {},
-              icon: Icon(Icons.people, color: Colors.blue, size: 28),
+              icon: Icon(Icons.info_outline, color: Colors.blue, size: 26),
+              tooltip: 'About',
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return Dialog(
+                      backgroundColor: Colors.black,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.sports_soccer,
+                              color: Colors.white,
+                              size: 48,
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              'E-Football Ranking',
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              'Version 1.0.0',
+                              style: TextStyle(color: Colors.white70),
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              'This app ranks eFootball players based on game results.\n\nDeveloped by aj_labs.',
+                              style: TextStyle(color: Colors.white),
+                              textAlign: TextAlign.center,
+                            ),
+                            SizedBox(height: 24),
+                            ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: Colors.black,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                              },
+                              icon: Icon(Icons.arrow_back),
+                              label: Text("Back"),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
             ),
+
             IconButton(
-              onPressed: () {},
+              onPressed: () async {
+                final Uri whatsappGroupUrl = Uri.parse(
+                  'https://chat.whatsapp.com/HFr8E95qDe2GsDlIApbitV',
+                ); // Replace with your group link
+
+                if (await canLaunchUrl(whatsappGroupUrl)) {
+                  await launchUrl(
+                    whatsappGroupUrl,
+                    mode: LaunchMode.externalApplication,
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Could not open WhatsApp group')),
+                  );
+                }
+              },
               icon: Icon(Icons.mail, color: Colors.blue, size: 26),
             ),
             Icon(Icons.access_time, color: Colors.white, size: 15),
@@ -107,7 +189,7 @@ class _LandingPageState extends State<LandingPage>
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     child: Text(
-                      'Profile',
+                      'Goats',
                       style: TextStyle(fontSize: 16, color: Colors.white),
                     ),
                   ),
@@ -131,9 +213,7 @@ class _LandingPageState extends State<LandingPage>
         children: [
           _buildGridButtons(),
           PlayerListPage(),
-          Center(
-            child: Text('Profile Page', style: TextStyle(color: Colors.white)),
-          ),
+          PlayerPhilosophyPage(),
           EntryListScreen(), // Directly load the screen here
         ],
       ),
@@ -191,16 +271,35 @@ class _LandingPageState extends State<LandingPage>
               items:
                   [
                     buildTopRankingCard(context),
-                    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRIc6W_L209uBv2oeNJR16Pc5HSM_vEC34MtQ&s',
-                    'https://i0.wp.com/uploads.saigacdn.com/2024/10/efootball-championship-25-00.jpg',
-                  ].map((url) {
+                    Image.asset(
+                      'assets/images/joby_carousal.png',
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                    ),
+                    Image.asset(
+                      'assets/images/vineeth_carousal.png',
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                    ),
+                    Image.asset(
+                      'assets/images/ajeesh_carousal.png',
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                    ),
+                    Image.asset(
+                      'assets/images/trust.png',
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                    ),
+                  ].map((item) {
                     return ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child:
-                          url is Widget
-                              ? url
+                          // ignore: unnecessary_type_check
+                          item is Widget
+                              ? item
                               : Image.network(
-                                url.toString(),
+                                item.toString(),
                                 fit: BoxFit.cover,
                                 width: double.infinity,
                               ),
@@ -280,7 +379,7 @@ class _LandingPageState extends State<LandingPage>
       },
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF1C1C1C),
+          color: const Color.fromARGB(255, 23, 23, 23),
           borderRadius: BorderRadius.circular(12),
         ),
         padding: const EdgeInsets.all(8),

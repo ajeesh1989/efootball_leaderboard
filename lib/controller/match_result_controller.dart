@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -15,32 +17,35 @@ class PlayerMatchResultProvider extends ChangeNotifier {
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
+
   Future<void> fetchPlayers() async {
     _isLoading = true;
     notifyListeners();
 
-    final res = await supabase.from('players').select();
-    _players = List<Map<String, dynamic>>.from(res);
+    try {
+      final res = await supabase.from('players').select();
+      _players = List<Map<String, dynamic>>.from(res);
 
-    // Sort players
-    _players.sort((a, b) {
-      int result = b['win_percent'].compareTo(a['win_percent']);
-      if (result == 0) {
-        result = b['points'].compareTo(a['points']);
+      _players.sort((a, b) {
+        int result = b['win_percent'].compareTo(a['win_percent']);
+        if (result == 0) {
+          result = b['points'].compareTo(a['points']);
+        }
+        return result;
+      });
+
+      if (_selectedPlayer != null) {
+        _selectedPlayer = _players.firstWhere(
+          (player) => player['id'] == _selectedPlayer!['id'],
+          orElse: () => _selectedPlayer!,
+        );
       }
-      return result;
-    });
-
-    // Update selectedPlayer with fresh data from the fetched list
-    if (_selectedPlayer != null) {
-      _selectedPlayer = _players.firstWhere(
-        (player) => player['id'] == _selectedPlayer!['id'],
-        orElse: () => _selectedPlayer!,
-      );
+    } catch (e, stack) {
+      log("Error fetching players: $e\n$stack");
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
-
-    _isLoading = false;
-    notifyListeners();
   }
 
   void selectPlayer(Map<String, dynamic>? player) {
@@ -53,38 +58,33 @@ class PlayerMatchResultProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> submitMatchResult() async {
-    if (_selectedPlayer == null) {
-      throw Exception("Please select a player.");
+  Future<void> updatePlayerStats(Map<String, dynamic> player) async {
+    final id = player['id'].toString(); // UUID
+
+    int played = _parseToInt(player['played']);
+    int won = _parseToInt(player['won']);
+    int lost = _parseToInt(player['lost']);
+    int draw = _parseToInt(player['draw']);
+
+    played += 1;
+
+    switch (_selectedResult) {
+      case 'Won':
+        won += 1;
+        break;
+      case 'Lost':
+        lost += 1;
+        break;
+      case 'Draw':
+        draw += 1;
+        break;
     }
 
-    _isLoading = true;
-    notifyListeners();
+    final points = (won * 3) + draw;
+    final winPercent = played > 0 ? (won / played) * 100 : 0.0;
+    final form = getForm(winPercent);
 
     try {
-      final p = _selectedPlayer!;
-      final id = p['id'];
-      int played = (p['played'] ?? 0) + 1;
-      int won = p['won'] ?? 0;
-      int lost = p['lost'] ?? 0;
-      int draw = p['draw'] ?? 0;
-
-      switch (_selectedResult) {
-        case 'Won':
-          won += 1;
-          break;
-        case 'Lost':
-          lost += 1;
-          break;
-        case 'Draw':
-          draw += 1;
-          break;
-      }
-
-      final points = (won * 3) + draw;
-      final winPercent = played > 0 ? (won / played) * 100 : 0.0;
-      final form = getForm(winPercent);
-
       await supabase
           .from('players')
           .update({
@@ -98,10 +98,61 @@ class PlayerMatchResultProvider extends ChangeNotifier {
           })
           .eq('id', id);
 
-      await fetchPlayers(); // Re-fetch and update selected player
+      log("Updated stats: played=$played, won=$won, lost=$lost, draw=$draw");
+    } catch (e, stack) {
+      log("Error updating player stats for player ID $id: $e\n$stack");
+    }
+  }
+
+  Future<void> insertMatchResult(dynamic playerId) async {
+    final id = playerId.toString(); // UUID
+    log("Inserting match result for playerId: $id");
+
+    try {
+      final response = await supabase.from('match_results').insert({
+        'player_id': id,
+        'result': _selectedResult,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+
+      log("Insert response: $response");
+    } catch (e) {
+      log("Error inserting match result: $e");
+    }
+  }
+
+  Future<void> submitMatchResult() async {
+    if (_selectedPlayer == null) {
+      log("Submit failed: No player selected.");
+      throw Exception("Please select a player.");
+    }
+
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final p = _selectedPlayer!;
+      final id = p['id'].toString(); // UUID
+
+      await updatePlayerStats(p);
+      await insertMatchResult(id);
+      await fetchPlayers();
+    } catch (e, stack) {
+      log("Error submitting match result: $e\n$stack");
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  int _parseToInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    try {
+      return int.parse(value.toString());
+    } catch (e) {
+      log("Error parsing value '$value' to int: $e");
+      return 0;
     }
   }
 
@@ -116,17 +167,139 @@ class PlayerMatchResultProvider extends ChangeNotifier {
     return "God Mode";
   }
 
-  Future<void> updateMatchResult(String matchId, String newForm) async {
+  Future<void> updateMatchResultAndPlayerStats(
+    String matchId,
+    String newResult,
+  ) async {
+    final match =
+        await supabase
+            .from('match_results')
+            .select()
+            .eq('id', matchId)
+            .single();
+
+    if (match == null) {
+      log("Match not found.");
+      return;
+    }
+
+    final playerId = match['player_id'];
+    final oldResult = match['result'];
+
+    final player =
+        await supabase.from('players').select().eq('id', playerId).single();
+
+    if (player == null) {
+      log("Player not found.");
+      return;
+    }
+
+    int played = _parseToInt(player['played']);
+    int won = _parseToInt(player['won']);
+    int lost = _parseToInt(player['lost']);
+    int draw = _parseToInt(player['draw']);
+
+    // 1. Remove the effect of old result
+    switch (oldResult) {
+      case 'Won':
+        won -= 1;
+        break;
+      case 'Lost':
+        lost -= 1;
+        break;
+      case 'Draw':
+        draw -= 1;
+        break;
+    }
+
+    // 2. Apply the effect of new result
+    switch (newResult) {
+      case 'Won':
+        won += 1;
+        break;
+      case 'Lost':
+        lost += 1;
+        break;
+      case 'Draw':
+        draw += 1;
+        break;
+    }
+
+    // Points and win percentage
+    final points = (won * 3) + draw;
+    final winPercent = played > 0 ? (won / played) * 100 : 0.0;
+    final form = getForm(winPercent);
+
+    // 3. Update player stats
+    await supabase
+        .from('players')
+        .update({
+          'won': won,
+          'lost': lost,
+          'draw': draw,
+          'points': points,
+          'win_percent': winPercent,
+          'form': form,
+        })
+        .eq('id', playerId);
+
+    // 4. Update match result record
     await supabase
         .from('match_results')
-        .update({'form': newForm})
+        .update({'result': newResult})
         .eq('id', matchId);
-    await fetchPlayers(); // Refresh list after update
+
+    await fetchPlayers(); // Refresh local player list
   }
 
-  Future<void> deleteMatchResult(String matchId) async {
+  Future<void> deleteMatchResultAndUpdatePlayer(String matchId) async {
+    final match =
+        await supabase
+            .from('match_results')
+            .select()
+            .eq('id', matchId)
+            .single();
+
+    final playerId = match['player_id'];
+    final result = match['result'];
+
+    final player =
+        await supabase.from('players').select().eq('id', playerId).single();
+
+    int played = _parseToInt(player['played']) - 1;
+    int won = _parseToInt(player['won']);
+    int lost = _parseToInt(player['lost']);
+    int draw = _parseToInt(player['draw']);
+
+    switch (result) {
+      case 'Won':
+        won -= 1;
+        break;
+      case 'Lost':
+        lost -= 1;
+        break;
+      case 'Draw':
+        draw -= 1;
+        break;
+    }
+
+    final points = (won * 3) + draw;
+    final winPercent = played > 0 ? (won / played) * 100 : 0.0;
+    final form = getForm(winPercent);
+
+    await supabase
+        .from('players')
+        .update({
+          'played': played,
+          'won': won,
+          'lost': lost,
+          'draw': draw,
+          'points': points,
+          'win_percent': winPercent,
+          'form': form,
+        })
+        .eq('id', playerId);
+
     await supabase.from('match_results').delete().eq('id', matchId);
-    _players.removeWhere((player) => player['id'] == matchId);
-    notifyListeners(); // Refresh UI
   }
 }

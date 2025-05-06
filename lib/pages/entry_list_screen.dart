@@ -36,51 +36,91 @@ class _EntryListScreenState extends State<EntryListScreen> {
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(12),
-      itemCount: players.length,
-      itemBuilder: (context, index) {
-        final player = players[index];
-        return Card(
-          color: const Color(0xFF2B2B2B),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          margin: const EdgeInsets.symmetric(vertical: 8),
-          child: ListTile(
-            title: Text(
-              player['name'] ?? 'Unnamed Player',
-              style: const TextStyle(
-                color: Colors.amber,
-                fontWeight: FontWeight.bold,
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: const Text("Match Results"),
+        backgroundColor: Colors.black,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(12),
+        child: SingleChildScrollView(
+          child: DataTable(
+            columns: const [
+              DataColumn(
+                label: Text('#', style: TextStyle(color: Colors.amber)),
               ),
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 4),
-                Text(
-                  "Date: ${player['last_match_date'] ?? '-'}",
-                  style: const TextStyle(color: Colors.white),
+              DataColumn(
+                label: Text(
+                  'Player Name',
+                  style: TextStyle(color: Colors.amber),
                 ),
-                Text(
-                  "Time: ${player['last_match_time'] ?? '-'}",
-                  style: const TextStyle(color: Colors.grey),
-                ),
-                Text(
-                  "Result: ${player['result'] ?? '-'}",
-                  style: const TextStyle(color: Colors.greenAccent),
-                ),
-              ],
-            ),
+              ),
+              DataColumn(
+                label: Text('Result', style: TextStyle(color: Colors.amber)),
+              ),
+              DataColumn(
+                label: Text('Date', style: TextStyle(color: Colors.amber)),
+              ),
+              DataColumn(
+                label: Text('Actions', style: TextStyle(color: Colors.amber)),
+              ),
+            ],
+            rows: List<DataRow>.generate(players.length, (index) {
+              final player = players[index];
+              return DataRow(
+                cells: [
+                  DataCell(
+                    Text(
+                      '${index + 1}',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ),
+                  DataCell(
+                    Text(
+                      player['name'] ?? 'Unnamed Player',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ),
+                  DataCell(
+                    Text(
+                      player['result'] ?? 'Not Available',
+                      style: const TextStyle(color: Colors.greenAccent),
+                    ),
+                  ),
+                  DataCell(
+                    Text(
+                      player['last_match_date'] ?? 'Not Available',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ),
+                  DataCell(
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.amber),
+                          onPressed: () => _editPlayerResult(context, player),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed:
+                              () => _confirmDelete(context, player['id']),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            }),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
   void _editPlayerResult(BuildContext context, Map<String, dynamic> player) {
-    final formController = TextEditingController(text: player['form']);
+    final nameController = TextEditingController(text: player['name']);
+    final formController = TextEditingController(text: player['result']);
     final _formKey = GlobalKey<FormState>();
 
     showDialog(
@@ -90,17 +130,32 @@ class _EntryListScreenState extends State<EntryListScreen> {
             title: const Text("Edit Match Result"),
             content: Form(
               key: _formKey,
-              child: TextFormField(
-                controller: formController,
-                decoration: const InputDecoration(
-                  labelText: 'Form (Win/Loss/Draw)',
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter a form value';
-                  }
-                  return null;
-                },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextFormField(
+                    controller: nameController,
+                    decoration: const InputDecoration(labelText: 'Player Name'),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Please enter a player name';
+                      }
+                      return null;
+                    },
+                  ),
+                  TextFormField(
+                    controller: formController,
+                    decoration: const InputDecoration(
+                      labelText: 'Form (Win/Loss/Draw)',
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Please enter a result';
+                      }
+                      return null;
+                    },
+                  ),
+                ],
               ),
             ),
             actions: [
@@ -111,13 +166,16 @@ class _EntryListScreenState extends State<EntryListScreen> {
               TextButton(
                 onPressed: () async {
                   if (_formKey.currentState?.validate() ?? false) {
-                    final updatedForm = formController.text.trim();
+                    final updatedName = nameController.text.trim();
                     final matchId = player['id'];
 
                     try {
                       await context
                           .read<PlayerMatchResultProvider>()
-                          .updateMatchResult(matchId, updatedForm);
+                          .updateMatchResultAndPlayerStats(
+                            matchId,
+                            updatedName, // Send updated player name as well
+                          );
 
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -166,7 +224,7 @@ class _EntryListScreenState extends State<EntryListScreen> {
                   try {
                     await context
                         .read<PlayerMatchResultProvider>()
-                        .deleteMatchResult(matchId);
+                        .deleteMatchResultAndUpdatePlayer(matchId);
 
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(

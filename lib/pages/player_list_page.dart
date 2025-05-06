@@ -138,16 +138,16 @@ class _PlayerListPageState extends State<PlayerListPage> {
     return Scaffold(
       backgroundColor: Colors.grey.shade900,
       appBar: AppBar(
-        title: const Text("Player List"),
+        title: const Text("Player List", style: TextStyle(fontSize: 15)),
         backgroundColor: const Color.fromARGB(255, 25, 25, 25),
-        foregroundColor: Colors.amber,
+        foregroundColor: Colors.white,
       ),
       body: RefreshIndicator(
         onRefresh: () async => await playerProvider.fetchPlayers(),
         child:
             playerProvider.isLoading
                 ? const Center(
-                  child: CircularProgressIndicator(color: Colors.amber),
+                  child: CircularProgressIndicator(color: Colors.cyan),
                 )
                 : playerProvider.players.isEmpty
                 ? const Center(
@@ -160,7 +160,7 @@ class _PlayerListPageState extends State<PlayerListPage> {
                   padding: const EdgeInsets.all(16),
                   itemCount: playerProvider.players.length,
                   separatorBuilder:
-                      (_, __) => const Divider(color: Colors.amber),
+                      (_, __) => const Divider(color: Colors.cyan),
                   itemBuilder: (context, index) {
                     final player = playerProvider.players[index];
                     final playerName = player['name'].toString().toUpperCase();
@@ -168,10 +168,14 @@ class _PlayerListPageState extends State<PlayerListPage> {
                     return ListTile(
                       title: Text(
                         playerName,
-                        style: const TextStyle(color: Colors.white),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                        ),
                       ),
                       leading: CircleAvatar(
-                        backgroundColor: Colors.amber,
+                        backgroundColor: Colors.cyan,
+                        radius: 18.00,
                         child: Text(
                           playerName[0].toUpperCase(),
                           style: const TextStyle(color: Colors.black),
@@ -182,12 +186,15 @@ class _PlayerListPageState extends State<PlayerListPage> {
                         children: [
                           IconButton(
                             tooltip: 'Edit Player',
-                            icon: const Icon(Icons.edit, color: Colors.amber),
+                            icon: const Icon(Icons.edit, color: Colors.white),
                             onPressed: () => editPlayer(context, player),
                           ),
                           IconButton(
                             tooltip: 'Delete Player',
-                            icon: const Icon(Icons.delete, color: Colors.red),
+                            icon: Icon(
+                              Icons.delete,
+                              color: Colors.grey.shade600,
+                            ),
                             onPressed:
                                 () => confirmDeletePlayer(context, player),
                           ),
