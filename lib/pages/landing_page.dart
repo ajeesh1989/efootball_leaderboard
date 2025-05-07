@@ -157,6 +157,7 @@ class _LandingPageState extends State<LandingPage>
               28,
             ), // Black background for TabBar
             child: TabBar(
+              dividerColor: Colors.black,
               controller: _tabController,
               indicator: BoxDecoration(
                 color: Colors.grey.shade700, // Grey color for the indicator

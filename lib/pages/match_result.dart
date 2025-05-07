@@ -27,16 +27,17 @@ class PlayerMatchResultPage extends StatelessWidget {
                     child: CircularProgressIndicator(color: Colors.amber),
                   )
                   : SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
+                    // padding: const EdgeInsets.all(5),
                     child: Column(
                       children: [
+                        // Dropdown for players
                         Card(
                           color: Colors.grey.shade900,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(14),
                           ),
                           child: Padding(
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.all(10),
                             child: DropdownButtonFormField<String>(
                               decoration: InputDecoration(
                                 filled: true,
@@ -52,19 +53,17 @@ class PlayerMatchResultPage extends StatelessWidget {
                               dropdownColor: Colors.grey.shade900,
                               value: provider.selectedPlayer?['id'],
                               items:
-                                  provider.players.isEmpty
-                                      ? []
-                                      : provider.players.map((player) {
-                                        return DropdownMenuItem<String>(
-                                          value: player['id'],
-                                          child: Text(
-                                            player['name'],
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                        );
-                                      }).toList(),
+                                  provider.players.map((player) {
+                                    return DropdownMenuItem<String>(
+                                      value: player['id'],
+                                      child: Text(
+                                        player['name'],
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
                               onChanged: (val) {
                                 if (val != null) {
                                   provider.selectPlayer(
@@ -78,8 +77,9 @@ class PlayerMatchResultPage extends StatelessWidget {
                           ),
                         ),
 
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 5),
 
+                        // Radio buttons
                         Card(
                           color: Colors.grey.shade900,
                           shape: RoundedRectangleBorder(
@@ -105,8 +105,9 @@ class PlayerMatchResultPage extends StatelessWidget {
                           ),
                         ),
 
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 8),
 
+                        // Buttons
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [

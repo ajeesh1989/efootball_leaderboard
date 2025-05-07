@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PlayerMatchResultProvider extends ChangeNotifier {
@@ -8,6 +9,9 @@ class PlayerMatchResultProvider extends ChangeNotifier {
 
   List<Map<String, dynamic>> _players = [];
   List<Map<String, dynamic>> get players => _players;
+
+  List<Map<String, dynamic>> __aalkkar = [];
+  List<Map<String, dynamic>> get items => __aalkkar; // Getter for items
 
   Map<String, dynamic>? _selectedPlayer;
   Map<String, dynamic>? get selectedPlayer => _selectedPlayer;
@@ -109,8 +113,24 @@ class PlayerMatchResultProvider extends ChangeNotifier {
     log("Inserting match result for playerId: $id");
 
     try {
+      // Fetch player name
+      final playerResponse =
+          await supabase
+              .from('players')
+              .select(
+                'name',
+              ) // Assuming the 'name' column exists in the 'players' table
+              .eq('id', id)
+              .single();
+
+      final playerName =
+          playerResponse['name'] ??
+          'Unknown'; // Fallback to 'Unknown' if name is null
+
+      // Insert match result with player name
       final response = await supabase.from('match_results').insert({
         'player_id': id,
+        'name': playerName, // Include player name
         'result': _selectedResult,
         'created_at': DateTime.now().toIso8601String(),
       });
@@ -178,21 +198,11 @@ class PlayerMatchResultProvider extends ChangeNotifier {
             .eq('id', matchId)
             .single();
 
-    if (match == null) {
-      log("Match not found.");
-      return;
-    }
-
     final playerId = match['player_id'];
     final oldResult = match['result'];
 
     final player =
         await supabase.from('players').select().eq('id', playerId).single();
-
-    if (player == null) {
-      log("Player not found.");
-      return;
-    }
 
     int played = _parseToInt(player['played']);
     int won = _parseToInt(player['won']);
@@ -301,5 +311,63 @@ class PlayerMatchResultProvider extends ChangeNotifier {
         .eq('id', playerId);
 
     await supabase.from('match_results').delete().eq('id', matchId);
+  }
+
+  Future<void> deleteItem(String itemId) async {
+    try {
+      final response = await supabase
+          .from('match_results')
+          .delete()
+          .eq('id', itemId);
+      if (response.error != null) {
+        throw Exception('Failed to delete item');
+      }
+    } catch (e, stack) {
+      log("Error deleting item: $e\n$stack");
+      rethrow;
+    }
+  }
+
+  Future<void> updateItem(String itemId, String name, String detail) async {
+    try {
+      final response = await supabase
+          .from('match_results')
+          .update({'name': name, 'detail': detail})
+          .eq('id', itemId);
+
+      if (response.error != null) {
+        throw Exception('Failed to update item');
+      }
+    } catch (e, stack) {
+      log("Error updating item: $e\n$stack");
+      rethrow;
+    }
+  }
+
+  Future<void> fetchData() async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final res = await supabase.from('match_results').select();
+
+      // Format the date
+      final dateFormat = DateFormat('dd MMM yyyy, hh:mm a');
+      __aalkkar =
+          List<Map<String, dynamic>>.from(res).map((item) {
+            final createdAt = item['created_at'];
+            if (createdAt != null) {
+              final parsedDate = DateTime.parse(createdAt);
+              item['formatted_date'] = dateFormat.format(parsedDate);
+            } else {
+              item['formatted_date'] = 'N/A';
+            }
+            return item;
+          }).toList();
+    } catch (e, stack) {
+      log("Error fetching data: $e\n$stack");
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 }

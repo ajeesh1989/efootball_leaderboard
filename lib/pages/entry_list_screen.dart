@@ -1,6 +1,7 @@
 import 'package:efootballranking/controller/match_result_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 
 class EntryListScreen extends StatefulWidget {
   const EntryListScreen({super.key});
@@ -14,143 +15,209 @@ class _EntryListScreenState extends State<EntryListScreen> {
   void initState() {
     super.initState();
     Future.microtask(() {
-      context.read<PlayerMatchResultProvider>().fetchPlayers();
+      context.read<PlayerMatchResultProvider>().fetchData();
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<PlayerMatchResultProvider>();
-    final players = provider.players;
-
-    if (provider.isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (players.isEmpty) {
-      return const Center(
-        child: Text(
-          "No match results available",
-          style: TextStyle(color: Colors.white),
-        ),
-      );
-    }
+    final items = provider.items;
 
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text("Match Results"),
+        title: const Text(
+          "Data entries",
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: Colors.black,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(12),
-        child: SingleChildScrollView(
-          child: DataTable(
-            columns: const [
-              DataColumn(
-                label: Text('#', style: TextStyle(color: Colors.amber)),
-              ),
-              DataColumn(
-                label: Text(
-                  'Player Name',
-                  style: TextStyle(color: Colors.amber),
+      body:
+          provider.isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : items.isEmpty
+              ? const Center(
+                child: Text(
+                  "No results available",
+                  style: TextStyle(color: Colors.white),
                 ),
-              ),
-              DataColumn(
-                label: Text('Result', style: TextStyle(color: Colors.amber)),
-              ),
-              DataColumn(
-                label: Text('Date', style: TextStyle(color: Colors.amber)),
-              ),
-              DataColumn(
-                label: Text('Actions', style: TextStyle(color: Colors.amber)),
-              ),
-            ],
-            rows: List<DataRow>.generate(players.length, (index) {
-              final player = players[index];
-              return DataRow(
-                cells: [
-                  DataCell(
-                    Text(
-                      '${index + 1}',
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ),
-                  DataCell(
-                    Text(
-                      player['name'] ?? 'Unnamed Player',
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ),
-                  DataCell(
-                    Text(
-                      player['result'] ?? 'Not Available',
-                      style: const TextStyle(color: Colors.greenAccent),
-                    ),
-                  ),
-                  DataCell(
-                    Text(
-                      player['last_match_date'] ?? 'Not Available',
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ),
-                  DataCell(
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit, color: Colors.amber),
-                          onPressed: () => _editPlayerResult(context, player),
+              )
+              : Padding(
+                padding: const EdgeInsets.all(12),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: SingleChildScrollView(
+                    child: DataTable(
+                      headingRowColor: MaterialStateProperty.all(
+                        Colors.grey.shade700,
+                      ),
+                      columns: const [
+                        DataColumn(
+                          label: Text(
+                            '#',
+                            style: TextStyle(color: Colors.white),
+                          ),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed:
-                              () => _confirmDelete(context, player['id']),
+                        DataColumn(
+                          label: Text(
+                            'Player Name',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        DataColumn(
+                          label: Text(
+                            'Result',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        DataColumn(
+                          label: Text(
+                            'Time Stamp',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        DataColumn(
+                          label: Text(
+                            'Actions',
+                            style: TextStyle(color: Colors.white),
+                          ),
                         ),
                       ],
+                      rows: List.generate(items.length, (index) {
+                        final item = items[index];
+                        final date = item['date'];
+                        String formattedDate = 'Not Available';
+
+                        if (date != null) {
+                          try {
+                            DateTime parsedDate = DateTime.parse(
+                              date.toString(),
+                            );
+                            formattedDate = DateFormat(
+                              'dd MMM yyyy, hh:mm a',
+                            ).format(parsedDate);
+                          } catch (e) {
+                            formattedDate = 'Invalid date';
+                          }
+                        }
+
+                        return DataRow(
+                          cells: [
+                            DataCell(
+                              Text(
+                                '${index + 1}',
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                            ),
+                            DataCell(
+                              Text(
+                                item['name'] ?? 'Unnamed Item',
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                            ),
+                            DataCell(
+                              Text(
+                                item['detail'] ?? 'Not Available',
+                                style: const TextStyle(
+                                  color: Colors.greenAccent,
+                                ),
+                              ),
+                            ),
+                            DataCell(
+                              Text(
+                                formattedDate,
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                            ),
+                            DataCell(
+                              Row(
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.edit,
+                                      color: Colors.amber,
+                                    ),
+                                    onPressed: () => _editItem(context, item),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.delete,
+                                      color: Colors.red,
+                                    ),
+                                    onPressed:
+                                        () =>
+                                            _confirmDelete(context, item['id']),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        );
+                      }),
                     ),
                   ),
-                ],
-              );
-            }),
-          ),
-        ),
-      ),
+                ),
+              ),
     );
   }
 
-  void _editPlayerResult(BuildContext context, Map<String, dynamic> player) {
-    final nameController = TextEditingController(text: player['name']);
-    final formController = TextEditingController(text: player['result']);
+  void _editItem(BuildContext context, Map<String, dynamic> item) {
+    final nameController = TextEditingController(text: item['name']);
+    final formController = TextEditingController(text: item['detail']);
     final _formKey = GlobalKey<FormState>();
+    String selectedRank = item['rank'] ?? '1';
+
+    final rankOptions = ['1', '2', '3', '4', '5'];
 
     showDialog(
       context: context,
       builder:
           (_) => AlertDialog(
-            title: const Text("Edit Match Result"),
+            title: const Text("Edit Item"),
             content: Form(
               key: _formKey,
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
+                  DropdownButtonFormField<String>(
+                    value: selectedRank,
+                    decoration: const InputDecoration(labelText: 'Select Rank'),
+                    items:
+                        rankOptions.map((String rank) {
+                          return DropdownMenuItem<String>(
+                            value: rank,
+                            child: Text(rank),
+                          );
+                        }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedRank = value!;
+                      });
+                    },
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please select a rank';
+                      }
+                      return null;
+                    },
+                  ),
                   TextFormField(
                     controller: nameController,
-                    decoration: const InputDecoration(labelText: 'Player Name'),
+                    decoration: const InputDecoration(labelText: 'Item Name'),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return 'Please enter a player name';
+                        return 'Please enter an item name';
                       }
                       return null;
                     },
                   ),
                   TextFormField(
                     controller: formController,
-                    decoration: const InputDecoration(
-                      labelText: 'Form (Win/Loss/Draw)',
-                    ),
+                    decoration: const InputDecoration(labelText: 'Detail'),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return 'Please enter a result';
+                        return 'Please enter a detail';
                       }
                       return null;
                     },
@@ -167,20 +234,21 @@ class _EntryListScreenState extends State<EntryListScreen> {
                 onPressed: () async {
                   if (_formKey.currentState?.validate() ?? false) {
                     final updatedName = nameController.text.trim();
-                    final matchId = player['id'];
+                    final itemId = item['id'];
 
                     try {
                       await context
                           .read<PlayerMatchResultProvider>()
-                          .updateMatchResultAndPlayerStats(
-                            matchId,
-                            updatedName, // Send updated player name as well
+                          .updateItem(
+                            itemId,
+                            updatedName,
+                            formController.text.trim(),
                           );
 
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Match result updated'),
+                            content: Text('Item updated'),
                             backgroundColor: Colors.green,
                           ),
                         );
@@ -190,7 +258,7 @@ class _EntryListScreenState extends State<EntryListScreen> {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Failed to update match result'),
+                            content: Text('Failed to update item'),
                             backgroundColor: Colors.red,
                           ),
                         );
@@ -205,15 +273,13 @@ class _EntryListScreenState extends State<EntryListScreen> {
     );
   }
 
-  void _confirmDelete(BuildContext context, String matchId) {
+  void _confirmDelete(BuildContext context, String itemId) {
     showDialog(
       context: context,
       builder:
           (_) => AlertDialog(
-            title: const Text("Delete Match Result"),
-            content: const Text(
-              "Are you sure you want to delete this match result?",
-            ),
+            title: const Text("Delete Item"),
+            content: const Text("Are you sure you want to delete this item?"),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
@@ -222,14 +288,14 @@ class _EntryListScreenState extends State<EntryListScreen> {
               TextButton(
                 onPressed: () async {
                   try {
-                    await context
-                        .read<PlayerMatchResultProvider>()
-                        .deleteMatchResultAndUpdatePlayer(matchId);
+                    await context.read<PlayerMatchResultProvider>().deleteItem(
+                      itemId,
+                    );
 
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Match result deleted'),
+                          content: Text('Item deleted'),
                           backgroundColor: Colors.green,
                         ),
                       );
@@ -239,7 +305,7 @@ class _EntryListScreenState extends State<EntryListScreen> {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Failed to delete match result'),
+                          content: Text('Failed to delete item'),
                           backgroundColor: Colors.red,
                         ),
                       );
