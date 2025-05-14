@@ -177,13 +177,15 @@ class PlayerMatchResultProvider extends ChangeNotifier {
   }
 
   String getForm(double winPercent) {
-    if (winPercent < 20) return "Noob";
-    if (winPercent < 30) return "Rookie";
-    if (winPercent < 40) return "Moderate";
-    if (winPercent < 60) return "Good";
-    if (winPercent < 70) return "Excellent";
-    if (winPercent < 80) return "Professional";
-    if (winPercent < 90) return "Legend";
+    if (winPercent <= 9.99) return "Poor";
+    if (winPercent <= 19.99) return "Beginner";
+    if (winPercent <= 29.99) return "Moderate";
+    if (winPercent <= 39.99) return "Decent";
+    if (winPercent <= 49.99) return "Good";
+    if (winPercent <= 59.99) return "Skilled";
+    if (winPercent <= 69.99) return "Excellent";
+    if (winPercent <= 79.99) return "Professional";
+    if (winPercent <= 89.99) return "Legend";
     return "God Mode";
   }
 

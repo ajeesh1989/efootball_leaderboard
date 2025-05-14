@@ -288,7 +288,7 @@ class _LandingPageState extends State<LandingPage>
                       width: double.infinity,
                     ),
                     Image.asset(
-                      'assets/images/trust.png',
+                      'assets/images/jungle_speaks.png',
                       fit: BoxFit.cover,
                       width: double.infinity,
                     ),

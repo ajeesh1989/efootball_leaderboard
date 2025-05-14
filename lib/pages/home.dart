@@ -142,6 +142,7 @@ class HomePage extends StatelessWidget {
     final provider = context.watch<PlayerProvider>();
     final players = provider.players;
     final repaintKey = GlobalKey();
+    log('🏠 HomePage rebuilt. Player count: ${players.length}');
 
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
