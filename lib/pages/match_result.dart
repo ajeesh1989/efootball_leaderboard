@@ -3,15 +3,28 @@ import 'package:efootballranking/pages/playerpage.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-class PlayerMatchResultPage extends StatelessWidget {
-  const PlayerMatchResultPage({super.key});
+class PlayerMatchResultPage extends StatefulWidget {
+  const PlayerMatchResultPage({Key? key}) : super(key: key);
+
+  @override
+  State<PlayerMatchResultPage> createState() => _PlayerMatchResultPageState();
+}
+
+class _PlayerMatchResultPageState extends State<PlayerMatchResultPage> {
+  bool _isInit = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Call fetchPlayers only once when the widget is first inserted into the widget tree.
+    if (!_isInit) {
+      context.read<PlayerMatchResultProvider>().fetchPlayers();
+      _isInit = true;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    Future.delayed(Duration.zero, () {
-      context.read<PlayerMatchResultProvider>().fetchPlayers();
-    });
-
     return Consumer<PlayerMatchResultProvider>(
       builder: (context, provider, _) {
         return Scaffold(
@@ -38,70 +51,225 @@ class PlayerMatchResultPage extends StatelessWidget {
                           ),
                           child: Padding(
                             padding: const EdgeInsets.all(10),
-                            child: DropdownButtonFormField<String>(
-                              decoration: InputDecoration(
-                                filled: true,
-                                fillColor: Colors.grey.shade900,
-                                labelText: "Select Player",
-                                labelStyle: const TextStyle(
-                                  color: Colors.amber,
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              dropdownColor: Colors.grey.shade900,
-                              value: provider.selectedPlayer?['id'],
-                              items:
-                                  provider.players.map((player) {
-                                    return DropdownMenuItem<String>(
-                                      value: player['id'],
-                                      child: Text(
-                                        player['name'],
-                                        style: const TextStyle(
-                                          color: Colors.white,
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Player 1 Section
+                                Expanded(
+                                  child: Column(
+                                    children: [
+                                      DropdownButtonFormField<String>(
+                                        decoration: InputDecoration(
+                                          filled: true,
+                                          fillColor: Colors.grey.shade900,
+                                          labelText: "Select Player 1",
+                                          labelStyle: const TextStyle(
+                                            color: Colors.amber,
+                                          ),
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                        ),
+                                        dropdownColor: Colors.grey.shade900,
+                                        value: provider.selectedPlayer?['id'],
+                                        hint: const Text(
+                                          "Select Player 1",
+                                          style: TextStyle(color: Colors.amber),
+                                        ),
+                                        items:
+                                            provider.players.map((player) {
+                                              return DropdownMenuItem<String>(
+                                                value: player['id'],
+                                                child: Text(
+                                                  player['name'],
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                              );
+                                            }).toList(),
+                                        onChanged: (val) {
+                                          if (val != null) {
+                                            provider.selectPlayer(
+                                              provider.players.firstWhere(
+                                                (player) => player['id'] == val,
+                                              ),
+                                            );
+                                          }
+                                        },
+                                      ),
+                                      const SizedBox(height: 10),
+
+                                      // Player 1 Radio Buttons
+                                      Card(
+                                        color: Colors.grey.shade900,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        child: Column(
+                                          children:
+                                              ['Won', 'Lost', 'Draw'].map((
+                                                result,
+                                              ) {
+                                                return RadioListTile<String>(
+                                                  title: Text(
+                                                    result,
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
+                                                  value: result,
+                                                  groupValue:
+                                                      provider.selectedResult,
+                                                  activeColor: Colors.amber,
+                                                  onChanged: (val) {
+                                                    provider.selectResult(val!);
+                                                    provider.selectResult2(
+                                                      val == 'Won'
+                                                          ? 'Lost'
+                                                          : (val == 'Lost'
+                                                              ? 'Won'
+                                                              : 'Draw'),
+                                                    );
+                                                  },
+                                                );
+                                              }).toList(),
                                         ),
                                       ),
-                                    );
-                                  }).toList(),
-                              onChanged: (val) {
-                                if (val != null) {
-                                  provider.selectPlayer(
-                                    provider.players.firstWhere(
-                                      (player) => player['id'] == val,
-                                    ),
-                                  );
-                                }
-                              },
-                            ),
-                          ),
-                        ),
+                                    ],
+                                  ),
+                                ),
 
-                        const SizedBox(height: 5),
-
-                        // Radio buttons
-                        Card(
-                          color: Colors.grey.shade900,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Column(
-                            children:
-                                ['Won', 'Lost', 'Draw'].map((result) {
-                                  return RadioListTile<String>(
-                                    title: Text(
-                                      result,
-                                      style: const TextStyle(
-                                        color: Colors.white,
+                                const SizedBox(
+                                  width: 20,
+                                ), // Space between Player 1 & Player 2
+                                // Player 2 Section
+                                Expanded(
+                                  child: Column(
+                                    children: [
+                                      DropdownButtonFormField<String>(
+                                        decoration: InputDecoration(
+                                          filled: true,
+                                          fillColor: Colors.grey.shade900,
+                                          labelText: "Select Player 2",
+                                          labelStyle: const TextStyle(
+                                            color: Colors.amber,
+                                          ),
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                        ),
+                                        dropdownColor: Colors.grey.shade900,
+                                        value:
+                                            provider.selectedPlayer2 != null &&
+                                                    provider.players
+                                                        .where(
+                                                          (player) =>
+                                                              player['id'] !=
+                                                              provider
+                                                                  .selectedPlayer?['id'],
+                                                        )
+                                                        .any(
+                                                          (player) =>
+                                                              player['id'] ==
+                                                              provider
+                                                                  .selectedPlayer2?['id'],
+                                                        )
+                                                ? provider
+                                                    .selectedPlayer2!['id']
+                                                : null,
+                                        hint: const Text(
+                                          "Select Player 2",
+                                          style: TextStyle(color: Colors.amber),
+                                        ),
+                                        items:
+                                            provider.players
+                                                .where(
+                                                  (player) =>
+                                                      player['id'] !=
+                                                      provider
+                                                          .selectedPlayer?['id'],
+                                                )
+                                                .map((player) {
+                                                  return DropdownMenuItem<
+                                                    String
+                                                  >(
+                                                    value: player['id'],
+                                                    child: Text(
+                                                      player['name'],
+                                                      style: const TextStyle(
+                                                        color: Colors.white,
+                                                      ),
+                                                    ),
+                                                  );
+                                                })
+                                                .toList(),
+                                        onChanged: (val) {
+                                          if (val != null) {
+                                            provider.selectPlayer2(
+                                              provider.players.firstWhere(
+                                                (player) => player['id'] == val,
+                                              ),
+                                            );
+                                          }
+                                        },
                                       ),
-                                    ),
-                                    value: result,
-                                    groupValue: provider.selectedResult,
-                                    activeColor: Colors.amber,
-                                    onChanged:
-                                        (val) => provider.selectResult(val!),
-                                  );
-                                }).toList(),
+
+                                      const SizedBox(height: 10),
+
+                                      // Player 2 Radio Buttons (Auto-set based on Player 1)
+                                      Card(
+                                        color: Colors.grey.shade900,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        child: Column(
+                                          children:
+                                              ['Won', 'Lost', 'Draw'].map((
+                                                result,
+                                              ) {
+                                                return RadioListTile<String>(
+                                                  title: Text(
+                                                    result,
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
+                                                  value: result,
+                                                  groupValue:
+                                                      provider.selectedResult2,
+                                                  activeColor:
+                                                      Colors
+                                                          .amber, // ✅ Ensures amber when selected
+                                                  fillColor:
+                                                      MaterialStateColor.resolveWith(
+                                                        (states) =>
+                                                            states.contains(
+                                                                  MaterialState
+                                                                      .selected,
+                                                                )
+                                                                ? Colors.amber
+                                                                : Colors.white,
+                                                      ), // ✅ Fix: Force amber color when selected
+                                                  onChanged:
+                                                      null, // Prevent manual selection
+                                                );
+                                              }).toList(),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
 

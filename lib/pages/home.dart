@@ -5,6 +5,7 @@ import 'dart:ui';
 import 'package:data_table_2/data_table_2.dart';
 import 'package:efootballranking/controller/match_result_controller.dart';
 import 'package:efootballranking/controller/player_controller.dart';
+import 'package:efootballranking/pages/head_tohead.dart';
 import 'package:efootballranking/pages/match_result.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -159,6 +160,18 @@ class HomePage extends StatelessWidget {
         ),
         elevation: 4,
         actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => HeadToHeadPage()),
+              );
+            },
+            child: Text(
+              'Head2Head',
+              style: TextStyle(color: Colors.white, fontSize: 18),
+            ),
+          ),
           IconButton(
             onPressed: () => downloadTableAsPdf(context, players),
             icon: const Icon(Icons.picture_as_pdf, color: Colors.amber),
