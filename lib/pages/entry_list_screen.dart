@@ -12,13 +12,12 @@ class EntryListScreen extends StatefulWidget {
 
 class _EntryListScreenState extends State<EntryListScreen> {
   @override
-  void initState() {
-    super.initState();
-    Future.microtask(() {
-      context.read<PlayerMatchResultProvider>().fetchData();
-    });
-  }
-
+  // void initState() {
+  //   super.initState();
+  //   Future.microtask(() {
+  //     context.read<PlayerMatchResultProvider>().fetchData();
+  //   });
+  // }
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<PlayerMatchResultProvider>();
@@ -230,44 +229,44 @@ class _EntryListScreenState extends State<EntryListScreen> {
                 onPressed: () => Navigator.pop(context),
                 child: const Text("Cancel"),
               ),
-              TextButton(
-                onPressed: () async {
-                  if (_formKey.currentState?.validate() ?? false) {
-                    final updatedName = nameController.text.trim();
-                    final itemId = item['id'];
+              // TextButton(
+              //   onPressed: () async {
+              //     if (_formKey.currentState?.validate() ?? false) {
+              //       final updatedName = nameController.text.trim();
+              //       final itemId = item['id'];
 
-                    try {
-                      await context
-                          .read<PlayerMatchResultProvider>()
-                          .updateItem(
-                            itemId,
-                            updatedName,
-                            formController.text.trim(),
-                          );
+              //       try {
+              //         await context
+              //             .read<PlayerMatchResultProvider>()
+              //             .updateItem(
+              //               itemId,
+              //               updatedName,
+              //               formController.text.trim(),
+              //             );
 
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Item updated'),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-                        Navigator.pop(context);
-                      }
-                    } catch (_) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Failed to update item'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      }
-                    }
-                  }
-                },
-                child: const Text("Save"),
-              ),
+              //         if (context.mounted) {
+              //           ScaffoldMessenger.of(context).showSnackBar(
+              //             const SnackBar(
+              //               content: Text('Item updated'),
+              //               backgroundColor: Colors.green,
+              //             ),
+              //           );
+              //           Navigator.pop(context);
+              //         }
+              //       } catch (_) {
+              //         if (context.mounted) {
+              //           ScaffoldMessenger.of(context).showSnackBar(
+              //             const SnackBar(
+              //               content: Text('Failed to update item'),
+              //               backgroundColor: Colors.red,
+              //             ),
+              //           );
+              //         }
+              //       }
+              //     }
+              //   },
+              //   child: const Text("Save"),
+              // ),
             ],
           ),
     );
@@ -285,38 +284,38 @@ class _EntryListScreenState extends State<EntryListScreen> {
                 onPressed: () => Navigator.pop(context),
                 child: const Text("Cancel"),
               ),
-              TextButton(
-                onPressed: () async {
-                  try {
-                    await context.read<PlayerMatchResultProvider>().deleteItem(
-                      itemId,
-                    );
+              // TextButton(
+              //   onPressed: () async {
+              //     try {
+              //       await context.read<PlayerMatchResultProvider>().deleteItem(
+              //         itemId,
+              //       );
 
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Item deleted'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                      Navigator.pop(context);
-                    }
-                  } catch (_) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Failed to delete item'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
-                  }
-                },
-                child: const Text(
-                  "Delete",
-                  style: TextStyle(color: Colors.red),
-                ),
-              ),
+              //       if (context.mounted) {
+              //         ScaffoldMessenger.of(context).showSnackBar(
+              //           const SnackBar(
+              //             content: Text('Item deleted'),
+              //             backgroundColor: Colors.green,
+              //           ),
+              //         );
+              //         Navigator.pop(context);
+              //       }
+              //     } catch (_) {
+              //       if (context.mounted) {
+              //         ScaffoldMessenger.of(context).showSnackBar(
+              //           const SnackBar(
+              //             content: Text('Failed to delete item'),
+              //             backgroundColor: Colors.red,
+              //           ),
+              //         );
+              //       }
+              //     }
+              //   },
+              //   child: const Text(
+              //     "Delete",
+              //     style: TextStyle(color: Colors.red),
+              //   ),
+              // ),
             ],
           ),
     );

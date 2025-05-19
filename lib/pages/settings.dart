@@ -29,7 +29,7 @@ class SettingPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              '⚽ eFootball Ranking App',
+              '⚽ eFootRank',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 22,

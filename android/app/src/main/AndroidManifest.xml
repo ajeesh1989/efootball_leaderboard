@@ -13,9 +13,12 @@
     
     <!-- Optional: Access media location for photos -->
     <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="com.google.android.c2dm.permission.RECEIVE"/>
+
 
     <application
-        android:label="efootballranking"
+        android:label="eFootRank"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:requestLegacyExternalStorage="true">
@@ -33,6 +36,13 @@
                 android:name="io.flutter.embedding.android.NormalTheme"
                 android:resource="@style/NormalTheme"
             />
+            <meta-data
+                android:name="onesignal_app_id"
+                android:value="cf8de49d-ef20-4983-abd8-ad994200eb26"/>
+            <meta-data
+                android:name="onesignal_google_project_number"
+                android:value="REMOTE"/>
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

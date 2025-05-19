@@ -2,6 +2,7 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:efootballranking/controller/player_controller.dart';
 import 'package:efootballranking/pages/entry_list_screen.dart';
 import 'package:efootballranking/pages/home.dart';
+import 'package:efootballranking/pages/jungle.dart';
 import 'package:efootballranking/pages/physolophy.dart';
 import 'package:efootballranking/pages/player_list_page.dart';
 import 'package:flutter/material.dart';
@@ -78,7 +79,7 @@ class _LandingPageState extends State<LandingPage>
                             ),
                             SizedBox(height: 16),
                             Text(
-                              'E-Football Ranking',
+                              'E-FootRank',
                               style: TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
@@ -87,7 +88,7 @@ class _LandingPageState extends State<LandingPage>
                             ),
                             SizedBox(height: 8),
                             Text(
-                              'Version 1.0.0',
+                              'Version 1.0.5',
                               style: TextStyle(color: Colors.white70),
                             ),
                             SizedBox(height: 16),
@@ -271,7 +272,17 @@ class _LandingPageState extends State<LandingPage>
               ),
               items:
                   [
+                    Image.network(
+                      'https://naljobovnfkdqqexckxw.supabase.co/storage/v1/object/public/carousel//carousel1.png',
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                    ),
                     buildTopRankingCard(context),
+                    Image.network(
+                      'https://naljobovnfkdqqexckxw.supabase.co/storage/v1/object/public/carousel//carousel2.png',
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                    ),
                     Image.asset(
                       'assets/images/joby_carousal.png',
                       fit: BoxFit.cover,
@@ -287,23 +298,25 @@ class _LandingPageState extends State<LandingPage>
                       fit: BoxFit.cover,
                       width: double.infinity,
                     ),
-                    Image.asset(
-                      'assets/images/jungle_speaks.png',
-                      fit: BoxFit.cover,
-                      width: double.infinity,
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => JungleSoccerKingsPage(),
+                          ),
+                        );
+                      },
+                      child: Image.asset(
+                        'assets/images/jungle_speaks.png',
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                      ),
                     ),
                   ].map((item) {
                     return ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child:
-                          // ignore: unnecessary_type_check
-                          item is Widget
-                              ? item
-                              : Image.network(
-                                item.toString(),
-                                fit: BoxFit.cover,
-                                width: double.infinity,
-                              ),
+                      child: item,
                     );
                   }).toList(),
             ),
@@ -367,8 +380,6 @@ class _LandingPageState extends State<LandingPage>
 
   Widget buildTopRankingCard(BuildContext context) {
     final players = context.watch<PlayerProvider>().players;
-
-    // Take top 3 or less if not available
     final topPlayers = players.take(3).toList();
 
     return GestureDetector(
@@ -378,69 +389,143 @@ class _LandingPageState extends State<LandingPage>
           MaterialPageRoute(builder: (context) => HomePage()),
         );
       },
-      child: Container(
-        decoration: BoxDecoration(
-          color: const Color.fromARGB(255, 23, 23, 23),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        padding: const EdgeInsets.all(8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              "🏆 Top Rankings",
-              style: TextStyle(
-                color: Colors.amber,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            if (topPlayers.isEmpty)
-              const Center(
-                child: Text(
-                  "No data to show",
-                  style: TextStyle(color: Colors.white70, fontSize: 16),
+      child: SingleChildScrollView(
+        child: Container(
+          height: 180,
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
+          child: Stack(
+            children: [
+              // Background Image with opacity
+              Positioned.fill(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.asset(
+                    'assets/images/top_card_bg.jpg',
+                    fit: BoxFit.cover,
+                  ),
                 ),
-              )
-            else
-              ...topPlayers.asMap().entries.map((entry) {
-                final i = entry.key;
-                final p = entry.value;
-                final colors = [Colors.amber, Colors.grey, Colors.brown];
+              ),
 
-                final playerName = p['name'] as String;
-                final playerPoints = p['points'] as int;
-
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
+              // Foreground content
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color.fromARGB(
+                    255,
+                    23,
+                    23,
+                    23,
+                  ).withOpacity(0.85),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.all(8),
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.emoji_events, color: colors[i], size: 20),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          playerName.toUpperCase(),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
+                      const Text(
+                        "🏆 Top Rankings",
+                        style: TextStyle(
+                          color: Colors.amber,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      if (topPlayers.isEmpty)
+                        const Center(
+                          child: Text(
+                            "No data to show",
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 16,
+                            ),
                           ),
-                        ),
-                      ),
-                      Text(
-                        "$playerPoints points",
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
+                        )
+                      else
+                        ...topPlayers.asMap().entries.map((entry) {
+                          final i = entry.key;
+                          final p = entry.value;
+                          final colors = [
+                            Colors.amber,
+                            Colors.grey,
+                            Colors.brown,
+                          ];
+
+                          final playerName = p['name'] as String;
+                          final playerPoints = p['points'] as int;
+                          final playerForm = p['form'] as String? ?? "N/A";
+                          final winPercent = p['win_percent'] as double? ?? 0.0;
+
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.emoji_events,
+                                  color: colors[i],
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    playerName.toUpperCase(),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ),
+                                Row(
+                                  children: [
+                                    Text(
+                                      "Win% - ${winPercent.toStringAsFixed(1)}% ",
+                                      style: const TextStyle(
+                                        color: Colors.lightGreenAccent,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      "$playerPoints points",
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 2,
+                                        horizontal: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.amber.withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        playerForm,
+                                        style: const TextStyle(
+                                          color: Colors.amber,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
                     ],
                   ),
-                );
-              }),
-          ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

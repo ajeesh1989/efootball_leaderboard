@@ -1,7 +1,8 @@
+import 'dart:convert';
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PlayerMatchResultProvider extends ChangeNotifier {
@@ -10,7 +11,7 @@ class PlayerMatchResultProvider extends ChangeNotifier {
   List<Map<String, dynamic>> _players = [];
   List<Map<String, dynamic>> get players => _players;
 
-  List<Map<String, dynamic>> __aalkkar = [];
+  final List<Map<String, dynamic>> __aalkkar = [];
   List<Map<String, dynamic>> get items => __aalkkar; // Getter for items
 
   Map<String, dynamic>? _selectedPlayer;
@@ -143,25 +144,74 @@ class PlayerMatchResultProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> insertMatchResult(String playerId, String result) async {
-    final id = playerId.toString();
-    log("Inserting match result for playerId: $id with result: $result");
-
+  Future<void> updateMatchWithPlayer2(
+    String matchId,
+    String player2Id,
+    String player2Name,
+    String player2Result,
+  ) async {
     try {
-      final playerResponse =
-          await supabase.from('players').select('name').eq('id', id).single();
-      final playerName = playerResponse['name'] ?? 'Unknown';
+      await supabase
+          .from('matches')
+          .update({
+            'player2_id': player2Id,
+            'player2_name': player2Name,
+            'player2_result': player2Result,
+          })
+          .eq('id', matchId);
 
-      await supabase.from('match_results').insert({
-        'player_id': id,
-        'name': playerName,
-        'result': result, // ✅ Fix: Pass correct result dynamically
-        'created_at': DateTime.now().toIso8601String(),
+      log("Updated match $matchId with player2 data ✅");
+    } catch (e) {
+      log("Error updating match with player2 data: $e");
+    }
+  }
+
+  Future<void> insertFullMatchResult({
+    required String player1Id,
+    required String player2Id,
+    required String player1Result,
+    required String player2Result,
+  }) async {
+    try {
+      // Fetch player names in parallel
+      final responses = await Future.wait([
+        supabase.from('players').select('name').eq('id', player1Id).single(),
+        supabase.from('players').select('name').eq('id', player2Id).single(),
+      ]);
+
+      final player1Name = responses[0]['name'] ?? 'Unknown';
+      final player2Name = responses[1]['name'] ?? 'Unknown';
+
+      // Insert into match_results for both players (optional)
+      await Future.wait([
+        supabase.from('match_results').insert({
+          'player_id': player1Id,
+          'name': player1Name,
+          'result': player1Result,
+          'created_at': DateTime.now().toIso8601String(),
+        }),
+        supabase.from('match_results').insert({
+          'player_id': player2Id,
+          'name': player2Name,
+          'result': player2Result,
+          'created_at': DateTime.now().toIso8601String(),
+        }),
+      ]);
+
+      // Insert full match with both players
+      await supabase.from('matches').insert({
+        'player1_id': player1Id,
+        'player1_name': player1Name,
+        'player1_result': player1Result,
+        'player2_id': player2Id,
+        'player2_name': player2Name,
+        'player2_result': player2Result,
+        'match_date': DateTime.now().toIso8601String(),
       });
 
-      log("Inserted match result for playerId: $id with result: $result");
+      log("Successfully inserted full match result");
     } catch (e) {
-      log("Error inserting match result: $e");
+      log("Error inserting full match result: $e");
     }
   }
 
@@ -195,21 +245,28 @@ class PlayerMatchResultProvider extends ChangeNotifier {
           throw Exception("Invalid match result.");
       }
 
-      // Update stats and insert match results with the correct result values.
+      // Update stats for both players
       await updatePlayerStats(player1, _selectedResult);
-      await insertMatchResult(id1, _selectedResult);
-
       await updatePlayerStats(player2, _selectedResult2);
-      await insertMatchResult(id2, _selectedResult2);
 
-      // Refresh player list from the database.
+      // Insert a full match row with both players' data
+      await insertFullMatchResult(
+        player1Id: id1,
+        player2Id: id2,
+        player1Result: _selectedResult,
+        player2Result: _selectedResult2,
+      );
+
+      // Refresh player list from the database
       await fetchPlayers();
 
       log("Match result successfully submitted for both players.");
 
-      // Reset the selections – this is key for refreshing the UI.
+      // Reset selections for UI
       _selectedPlayer = null;
       _selectedPlayer2 = null;
+      _selectedResult = 'Won';
+      _selectedResult2 = 'Lost';
     } catch (e, stack) {
       log("Error submitting match results: $e\n$stack");
     } finally {
@@ -242,288 +299,115 @@ class PlayerMatchResultProvider extends ChangeNotifier {
     return "God Mode";
   }
 
-  Future<void> updateMatchResultAndPlayerStats(
-    String matchId,
-    String newResult,
-  ) async {
-    final match =
-        await supabase
-            .from('match_results')
-            .select()
-            .eq('id', matchId)
-            .single();
-
-    final playerId = match['player_id'];
-    final oldResult = match['result'];
-
-    final player =
-        await supabase.from('players').select().eq('id', playerId).single();
-
-    int played = _parseToInt(player['played']);
-    int won = _parseToInt(player['won']);
-    int lost = _parseToInt(player['lost']);
-    int draw = _parseToInt(player['draw']);
-
-    // 1. Remove the effect of old result
-    switch (oldResult) {
-      case 'Won':
-        won -= 1;
-        break;
-      case 'Lost':
-        lost -= 1;
-        break;
-      case 'Draw':
-        draw -= 1;
-        break;
-    }
-
-    // 2. Apply the effect of new result
-    switch (newResult) {
-      case 'Won':
-        won += 1;
-        break;
-      case 'Lost':
-        lost += 1;
-        break;
-      case 'Draw':
-        draw += 1;
-        break;
-    }
-
-    // Points and win percentage
-    final points = (won * 3) + draw;
-    final winPercent = played > 0 ? (won / played) * 100 : 0.0;
-    final form = getForm(winPercent);
-
-    // 3. Update player stats
-    await supabase
-        .from('players')
-        .update({
-          'won': won,
-          'lost': lost,
-          'draw': draw,
-          'points': points,
-          'win_percent': winPercent,
-          'form': form,
-        })
-        .eq('id', playerId);
-
-    // 4. Update match result record
-    await supabase
-        .from('match_results')
-        .update({'result': newResult})
-        .eq('id', matchId);
-
-    await fetchPlayers(); // Refresh local player list
-  }
-
-  Future<void> deleteMatchResultAndUpdatePlayer(String matchId) async {
-    final match =
-        await supabase
-            .from('match_results')
-            .select()
-            .eq('id', matchId)
-            .single();
-
-    final playerId = match['player_id'];
-    final result = match['result'];
-
-    final player =
-        await supabase.from('players').select().eq('id', playerId).single();
-
-    int played = _parseToInt(player['played']) - 1;
-    int won = _parseToInt(player['won']);
-    int lost = _parseToInt(player['lost']);
-    int draw = _parseToInt(player['draw']);
-
-    switch (result) {
-      case 'Won':
-        won -= 1;
-        break;
-      case 'Lost':
-        lost -= 1;
-        break;
-      case 'Draw':
-        draw -= 1;
-        break;
-    }
-
-    final points = (won * 3) + draw;
-    final winPercent = played > 0 ? (won / played) * 100 : 0.0;
-    final form = getForm(winPercent);
-
-    await supabase
-        .from('players')
-        .update({
-          'played': played,
-          'won': won,
-          'lost': lost,
-          'draw': draw,
-          'points': points,
-          'win_percent': winPercent,
-          'form': form,
-        })
-        .eq('id', playerId);
-
-    await supabase.from('match_results').delete().eq('id', matchId);
-  }
-
-  Future<void> deleteItem(String itemId) async {
-    try {
-      final response = await supabase
-          .from('match_results')
-          .delete()
-          .eq('id', itemId);
-      if (response.error != null) {
-        throw Exception('Failed to delete item');
-      }
-    } catch (e, stack) {
-      log("Error deleting item: $e\n$stack");
-      rethrow;
-    }
-  }
-
-  Future<void> updateItem(String itemId, String name, String detail) async {
-    try {
-      final response = await supabase
-          .from('match_results')
-          .update({'name': name, 'detail': detail})
-          .eq('id', itemId);
-
-      if (response.error != null) {
-        throw Exception('Failed to update item');
-      }
-    } catch (e, stack) {
-      log("Error updating item: $e\n$stack");
-      rethrow;
-    }
-  }
-
-  Future<void> fetchData() async {
-    _isLoading = true;
-    notifyListeners();
-    try {
-      final res = await supabase.from('match_results').select();
-
-      // Format the date
-      final dateFormat = DateFormat('dd MMM yyyy, hh:mm a');
-      __aalkkar =
-          List<Map<String, dynamic>>.from(res).map((item) {
-            final createdAt = item['created_at'];
-            if (createdAt != null) {
-              final parsedDate = DateTime.parse(createdAt);
-              item['formatted_date'] = dateFormat.format(parsedDate);
-            } else {
-              item['formatted_date'] = 'N/A';
-            }
-            return item;
-          }).toList();
-    } catch (e, stack) {
-      log("Error fetching data: $e\n$stack");
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  Future<void> submitHeadToHeadMatch({
-    required Map<String, dynamic> player1,
-    required Map<String, dynamic> player2,
-    required String player1Result, // Expected values: 'Won', 'Lost', or 'Draw'
-    required String player2Result, // Expected values: 'Won', 'Lost', or 'Draw'
-  }) async {
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      final response = await supabase.from('matches').insert({
-        'player1_id': player1['id'],
-        'player2_id': player2['id'],
-        'player1_result': player1Result,
-        'player2_result': player2Result,
-        // Optional: specify match_date if needed (or let it default to now)
-      });
-
-      // Optionally check response errors:
-      if (response.error != null) {
-        throw Exception('Failed to submit head-to-head match');
-      }
-
-      // After a successful insert, you might want to update player statistics
-      // or refresh any cached match data.
-
-      log("Successfully submitted head-to-head match: $response");
-
-      // Optionally, if you have separate heads-up data in the provider,
-      // fetch/update head-to-head stats here
-      await fetchHeadToHeadData(player1['id'], player2['id']);
-    } catch (e, stack) {
-      log("Error in submitHeadToHeadMatch: $e\n$stack");
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
   Future<Map<String, dynamic>?> fetchHeadToHeadData(
     String player1Id,
     String player2Id,
   ) async {
     try {
-      // Build the query to fetch matches that involve both players, regardless of order.
+      final p1Id = int.tryParse(player1Id) ?? player1Id;
+      final p2Id = int.tryParse(player2Id) ?? player2Id;
+
       final data = await supabase
           .from('matches')
-          .select()
+          .select('player1_id, player2_id, player1_result, player2_result')
           .or(
-            'and(player1_id.eq.$player1Id,player2_id.eq.$player2Id),and(player1_id.eq.$player2Id,player2_id.eq.$player1Id)',
+            'and(player1_id.eq.$player1Id,player2_id.eq.$player2Id),and(player1_id.eq.$player2Id,player1_id.eq.$player1Id)',
           );
 
-      // Log the raw data output for debugging.
-      debugPrint("Raw matches data: $data");
+      if (data.isEmpty) return null;
 
-      // Ensure the returned data is a List.
       final List<dynamic> matches = data as List<dynamic>;
-      final totalMatches = matches.length;
       int player1Wins = 0;
       int player2Wins = 0;
       int draws = 0;
 
+      DateTime? lastMatchDate;
+
       for (final match in matches) {
-        // We assume here that a match is a draw if player1_result is 'Draw'.
-        if (match['player1_result'] == 'Draw') {
+        final p1Result =
+            (match['player1_result'] as String?)?.toLowerCase() ?? '';
+        final p2Result =
+            (match['player2_result'] as String?)?.toLowerCase() ?? '';
+        final matchP1Id = match['player1_id'];
+        final matchP2Id = match['player2_id'];
+
+        // Update last match date if available
+        if (match['match_date'] != null) {
+          final dateStr = match['match_date'];
+          DateTime? matchDate;
+          if (dateStr is String) {
+            matchDate = DateTime.tryParse(dateStr);
+          } else if (dateStr is DateTime) {
+            matchDate = dateStr;
+          }
+          if (matchDate != null) {
+            if (lastMatchDate == null || matchDate.isAfter(lastMatchDate)) {
+              lastMatchDate = matchDate;
+            }
+          }
+        }
+
+        if (p1Result == 'draw' && p2Result == 'draw') {
           draws++;
-        } else {
-          // Count wins for player1Id.
-          if ((match['player1_id'] == player1Id &&
-                  match['player1_result'] == 'Won') ||
-              (match['player2_id'] == player1Id &&
-                  match['player2_result'] == 'Won')) {
-            player1Wins++;
-          }
-          // Count wins for player2Id.
-          if ((match['player1_id'] == player2Id &&
-                  match['player1_result'] == 'Won') ||
-              (match['player2_id'] == player2Id &&
-                  match['player2_result'] == 'Won')) {
-            player2Wins++;
-          }
+        } else if (matchP1Id == p1Id && p1Result == 'won') {
+          player1Wins++;
+        } else if (matchP2Id == p1Id && p2Result == 'won') {
+          player1Wins++;
+        } else if (matchP1Id == p2Id && p1Result == 'won') {
+          player2Wins++;
+        } else if (matchP2Id == p2Id && p2Result == 'won') {
+          player2Wins++;
         }
       }
 
-      debugPrint(
-        "Processed head-to-head counts: Total Matches: $totalMatches, "
-        "Player1 Wins: $player1Wins, Player2 Wins: $player2Wins, Draws: $draws",
-      );
-
       return {
-        'totalMatches': totalMatches,
+        'totalMatches': matches.length,
         'player1Wins': player1Wins,
         'player2Wins': player2Wins,
         'draws': draws,
+        'lastMatchDate': lastMatchDate, // Add last match date here
       };
     } catch (e, stack) {
-      debugPrint("Error in fetchHeadToHeadData: $e\n$stack");
+      log("Error fetching head-to-head data: $e\n$stack");
       return null;
+    }
+  }
+
+  // ******************************************** imp
+  Future<void> sendScoreUpdateNotification(BuildContext context) async {
+    const String restApiKey =
+        'os_v2_app_z6g6jhppebeyhk6yvwmueahlezda4tspt4eumkmuwnfa6exx2zqkfzcu632y4c6cisrc7skc3al3bajv4cjuvtt7swm422ccxgukvqq';
+    const String appId = 'cf8de49d-ef20-4983-abd8-ad994200eb26';
+
+    var url = Uri.parse('https://onesignal.com/api/v1/notifications');
+
+    var headers = {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Authorization': 'Basic $restApiKey',
+    };
+
+    var body = jsonEncode({
+      'app_id': appId,
+      'included_segments': ['All'],
+      'headings': {'en': 'E-football Score Update'},
+      'contents': {'en': 'The score table has been updated!'},
+    });
+
+    try {
+      var response = await http.post(url, headers: headers, body: body);
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('✅ Notification sent')));
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('❌ Error: ${response.body}')));
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('⚠️ Exception: $e')));
     }
   }
 }
